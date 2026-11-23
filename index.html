@@ -364,7 +364,7 @@ td:first-child{color:var(--muted);width:100px}
 .dishbody{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .dishimg{background-size:cover;background-position:center}
 .dishimg img{transition:opacity .32s ease}
-/* 菜条：LQIP 铺在自身底色，真图放在 ::before 里淡入，避免 background-image 无过渡 */
+/* 画质修复：菜条底色直接铺真图（不再用 15×20 LQIP，放大会成马赛克）；::before 仅作同 URL 二次保险 */
 .dishitem::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:var(--di,none);background-size:cover;background-position:center;
   opacity:0;transition:opacity .32s ease}
@@ -488,7 +488,7 @@ td:first-child{color:var(--muted);width:100px}
             <b>图片位 · 待统一补齐</b>
             <small id="dishImgPath"></small>
           </div>
-          <img id="dishImgEl" alt="菜品图片" loading="lazy" decoding="async"/>
+          <img id="dishImgEl" alt="菜品图片" loading="eager" decoding="async"/>
         </div>
 
         <div class="dishaudio" id="dishAudioWrap">
@@ -704,7 +704,7 @@ td:first-child{color:var(--muted);width:100px}
     var dl=DISHES.filter(function(x){return x.region===current;});
     document.getElementById('dDishCount').textContent=dl.length;
     document.getElementById('dPills').innerHTML=dl.map(function(x,i){
-      return '<div class="dishitem" data-dish="'+x.id+'" data-img="'+x.img+'" style="background-image:url(&quot;'+(x.lqip||'')+'&quot;)">'+
+      return '<div class="dishitem" data-dish="'+x.id+'" data-img="'+x.img+'" style="background-image:url(&quot;'+x.img+'&quot;)">'+
         '<span class="di">'+(i+1<10?'0':'')+(i+1)+'</span><span class="dn">'+x.name+'</span><span class="da">›</span></div>';
     }).join('');
     document.getElementById('dPills').querySelectorAll('.dishitem').forEach(function(it){
@@ -730,11 +730,11 @@ td:first-child{color:var(--muted);width:100px}
     document.getElementById('dishCrumb').textContent=x.chName+' · 第 '+x.idx+' / '+x.total+' 道';
     document.getElementById('dishName').textContent=x.name;
     document.getElementById('dishRegion').textContent=r.name+' · '+r.cities;
-    // V2：LQIP 先铺底，真图 onload 后淡入；只有请求真正失败才显示「图片未添加」
+    // 画质修复：底色直接铺真图，<img> onload 后叠加；仅请求真正失败才显示「图片未添加」
     var ph=document.getElementById('dishImgPh'), im=document.getElementById('dishImgEl');
     var ibox=document.getElementById('dishImgBox');
     ph.style.display='none'; im.style.display='none'; im.style.opacity='0'; ibox.classList.remove('hasimg');
-    ibox.style.backgroundImage=x.lqip?('url("'+x.lqip+'")'):'';
+    ibox.style.backgroundImage=x.img?('url("'+x.img+'")'):'';
     document.getElementById('dishImgPath').textContent=x.img;
     im.onload=function(){im.style.display='block';void im.offsetWidth;im.style.opacity='1';ph.style.display='none';ibox.classList.add('hasimg');};
     im.onerror=function(){im.style.display='none';ph.style.display='flex';ibox.classList.remove('hasimg');};
@@ -1056,7 +1056,7 @@ td:first-child{color:var(--muted);width:100px}
       },A+40);
     },A);
   }
-  /* 菜条图片：LQIP 已在底色，进入视口后才串行取真图（并发上限 2） */
+  /* 菜条图片：底色已是真图，这里只做同 URL 预取/保险（并发上限 2） */
   function lazyDishItems(root){
     var card=document.querySelector('.detail-card');
     var items=[].slice.call(root.querySelectorAll('.dishitem'));
